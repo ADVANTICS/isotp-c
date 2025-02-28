@@ -2,7 +2,7 @@
 #define __ISOTP_USER_H__
 
 /* user implemented, print debug message */
-void isotp_user_debug(const uint_least8_t* message, ...);
+#define isotp_user_debug(x)
 
 /* user implemented, send can message. should return ISOTP_RET_OK when success.
 */
