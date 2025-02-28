@@ -60,8 +60,11 @@ typedef enum {
     ISOTP_RECEIVE_STATUS_FULL,
 } IsoTpReceiveStatusTypes;
 
-/* can fram defination */
-#if defined(ISOTP_BYTE_ORDER_LITTLE_ENDIAN)
+/* can frame defination */
+/*  TI C28x family compiler uses __little_endian__ macro  to specify it's endianess.
+    ["TMS320C28x Optimizing C/C++ Compiler v22.6.0.LTS", Page 37] */
+#if defined(ISOTP_BYTE_ORDER_LITTLE_ENDIAN) || __little_endian__==1
+
 typedef struct {
     uint_least8_t reserve_1:4;
     uint_least8_t type:4;
