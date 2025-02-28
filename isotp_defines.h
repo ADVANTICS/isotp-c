@@ -63,44 +63,44 @@ typedef enum {
 /* can fram defination */
 #if defined(ISOTP_BYTE_ORDER_LITTLE_ENDIAN)
 typedef struct {
-    uint8_t reserve_1:4;
-    uint8_t type:4;
-    uint8_t reserve_2[7];
+    uint_least8_t reserve_1:4;
+    uint_least8_t type:4;
+    uint_least8_t reserve_2[7];
 } IsoTpPciType;
 
 typedef struct {
-    uint8_t SF_DL:4;
-    uint8_t type:4;
-    uint8_t data[7];
+    uint_least8_t SF_DL:4;
+    uint_least8_t type:4;
+    uint_least8_t data[7];
 } IsoTpSingleFrame;
 
 typedef struct {
-    uint8_t FF_DL_high:4;
-    uint8_t type:4;
-    uint8_t FF_DL_low;
-    uint8_t data[6];
+    uint_least8_t FF_DL_high:4;
+    uint_least8_t type:4;
+    uint_least8_t FF_DL_low;
+    uint_least8_t data[6];
 } IsoTpFirstFrame;
 
 typedef struct {
-    uint8_t SN:4;
-    uint8_t type:4;
-    uint8_t data[7];
+    uint_least8_t SN:4;
+    uint_least8_t type:4;
+    uint_least8_t data[7];
 } IsoTpConsecutiveFrame;
 
 typedef struct {
-    uint8_t FS:4;
-    uint8_t type:4;
-    uint8_t BS;
-    uint8_t STmin;
-    uint8_t reserve[5];
+    uint_least8_t FS:4;
+    uint_least8_t type:4;
+    uint_least8_t BS;
+    uint_least8_t STmin;
+    uint_least8_t reserve[5];
 } IsoTpFlowControl;
 
 #else
 
 typedef struct {
-    uint8_t type:4;
-    uint8_t reserve_1:4;
-    uint8_t reserve_2[7];
+    uint_least8_t type:4;
+    uint_least8_t reserve_1:4;
+    uint_least8_t reserve_2[7];
 } IsoTpPciType;
 
 /*
@@ -114,9 +114,9 @@ typedef struct {
 * +-------------+-----------+-----+
 */
 typedef struct {
-    uint8_t type:4;
-    uint8_t SF_DL:4;
-    uint8_t data[7];
+    uint_least8_t type:4;
+    uint_least8_t SF_DL:4;
+    uint_least8_t data[7];
 } IsoTpSingleFrame;
 
 /*
@@ -130,10 +130,10 @@ typedef struct {
 * +-------------+-----------+-----------------------+-----+
 */
 typedef struct {
-    uint8_t type:4;
-    uint8_t FF_DL_high:4;
-    uint8_t FF_DL_low;
-    uint8_t data[6];
+    uint_least8_t type:4;
+    uint_least8_t FF_DL_high:4;
+    uint_least8_t FF_DL_low;
+    uint_least8_t data[6];
 } IsoTpFirstFrame;
 
 /*
@@ -147,9 +147,9 @@ typedef struct {
 * +-------------+-----------+-----+
 */
 typedef struct {
-    uint8_t type:4;
-    uint8_t SN:4;
-    uint8_t data[7];
+    uint_least8_t type:4;
+    uint_least8_t SN:4;
+    uint_least8_t data[7];
 } IsoTpConsecutiveFrame;
 
 /*
@@ -163,17 +163,17 @@ typedef struct {
 * +-------------+-----------+-----------------------+-----------------------+-----+
 */
 typedef struct {
-    uint8_t type:4;
-    uint8_t FS:4;
-    uint8_t BS;
-    uint8_t STmin;
-    uint8_t reserve[5];
+    uint_least8_t type:4;
+    uint_least8_t FS:4;
+    uint_least8_t BS;
+    uint_least8_t STmin;
+    uint_least8_t reserve[5];
 } IsoTpFlowControl;
 
 #endif
 
 typedef struct {
-    uint8_t ptr[8];
+    uint_least8_t ptr[8];
 } IsoTpDataArray;
 
 typedef struct {
