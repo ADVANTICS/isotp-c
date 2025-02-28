@@ -101,6 +101,7 @@ static int isotp_send_first_frame(IsoTpLink* link, uint32_t id) {
     ret = isotp_user_send_can(id, message.as.data_array.ptr, sizeof(message));
     if (ISOTP_RET_OK == ret) {
         link->send_offset += sizeof(message.as.first_frame.data);
+        link->send_bs_remain = link->send_size - sizeof(message.as.first_frame.data);
         link->send_sn = 1;
     }
 
@@ -271,7 +272,6 @@ int isotp_send_with_id(IsoTpLink *link, uint32_t id, const uint_least8_t payload
 
         /* init multi-frame control flags */
         if (ISOTP_RET_OK == ret) {
-            link->send_bs_remain = 0;
             link->send_st_min = 0;
             link->send_wtf_count = 0;
             link->send_timer_st = isotp_user_get_ms();
