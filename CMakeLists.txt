@@ -12,8 +12,13 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/
 )
 
-###
-# Compile isotp as Shared Lib
-###
-add_library(isotp SHARED
-            isotp.c)
+enable_testing()
+
+add_executable( buffer_pack_unpack_16_test
+		buffer_pack_unpack_16.c
+		test.c )
+
+add_test(
+    NAME buffer_pack_unpack_16_test 
+    COMMAND buffer_pack_unpack_16_test
+)

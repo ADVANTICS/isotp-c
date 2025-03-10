@@ -14,10 +14,34 @@ This library doesn't assume anything about the source of the ISO-TP messages or 
 
 **The current version supports [ISO-15765-2](https://en.wikipedia.org/wiki/ISO_15765-2) single and multiple frame transmition, and works in Full-duplex mode.**
 
+**The current fork of the ISO-TP project adds support for some of the CPU's with non-8 bit minimum addressable units. Currently minimum addressable units of 8 and 16 bits are supported. For details see notes below.**
+
 ## Builds
 
 ### Master Build
 [![Build Status](https://api.travis-ci.com/Beatsleigher/isotp-c.svg?branch=master)](https://travis-ci.com/Beatsleigher/isotp-c)
+
+## Minimal addressable unit
+As stated above this fork support CPUs with 8 and 16 bits for minimum addressable units.
+
+The definition of the byte is a unit of digital information. There is a confusion around the byte term: it's definition doesn't prescript any length in bits, however in modern world it's typically 8 bits. For some systems it is be different, but it's a very rare case, and using "16-bit byte" term is not good option.
+
+Moreover, CAN protocol always operate with 8-bit bytes, so we would like to step out from existing terminology a little bit in favor of described in a table below:
+|    Term                       |                         Description                                   | Unit Symbol  | Width (bits)|
+|:-----------------------------:|-----------------------------------------------------------------------|-------------:|------------:|
+| Byte                          | 8-bit data unit.                                                      |          b.  |       8     |
+| Minimum Addressable Unit, MAU | Minimally possible addressable data unit on a given CPU architecture. |         mau. |    8 or 16  |
+
+
+For convinience, the following macro definitions were added:
+
+|  Macro Definition  | 8-bit MAU architecture |  16-bit MAU architecture |
+|:------------------:|-----------------------:|-------------------------:|
+|      MAU_SIZE      |           1            |            2             |
+|    UNSIGNED_MAU    |        uint8_t         |        uint16_t          |
+
+
+Functions below require some sizes to be specified in bytes and others in data_units. Read documentation carefully for details.
 
 ## Usage
 
@@ -52,8 +76,8 @@ You can use isotp-c in the following way:
     static IsoTpLink g_link;
 
 	/* Alloc send and receive buffer statically in RAM */
-    static uint8_t g_isotpRecvBuf[ISOTP_BUFSIZE];
-    static uint8_t g_isotpSendBuf[ISOTP_BUFSIZE];
+    static UNSIGNED_MAU g_isotpRecvBuf[ISOTP_BUFSIZE];
+    static UNSIGNED_MAU g_isotpSendBuf[ISOTP_BUFSIZE];
 	
     int main(void) {
         /* Initialize CAN and other peripherals */
@@ -79,14 +103,14 @@ You can use isotp-c in the following way:
             /* You can receive message with isotp_receive.
                payload is upper layer message buffer, usually UDS;
                payload_size is payload buffer size;
-               out_size is the actuall read size;
+               out_size is the actuall read size, in bytes;
                */
             ret = isotp_receive(&g_link, payload, payload_size, &out_size);
             if (ISOTP_RET_OK == ret) {
                 /* Handle received message */
             }
             
-            /* And send message with isotp_send */
+            /* And send message with isotp_send. Note, payload_size must specifify message length in bytes. */
             ret = isotp_send(&g_link, payload, payload_size);
             if (ISOTP_RET_OK == ret) {
                 /* Send ok */
@@ -94,7 +118,8 @@ You can use isotp-c in the following way:
                 /* An error occured */
             }
             
-            /* In case you want to send data w/ functional addressing, use isotp_send_with_id */
+            /* In case you want to send data w/ functional addressing, use isotp_send_with_id.
+            Note, payload_size must specifify message length in bytes.*/
             ret = isotp_send_with_id(&g_link, 0x7df, payload, payload_size);
             if (ISOTP_RET_OK == ret) {
                 /* Send ok */
@@ -116,11 +141,11 @@ If you need handle functional addressing, you must use two separate links, one f
     static IsoTpLink g_funclink;
 
 	/* Allocate send and receive buffer statically in RAM */
-	static uint8_t g_isotpPhyRecvBuf[512];
-	static uint8_t g_isotpPhySendBuf[512];
+	static UNSIGNED_MAU g_isotpPhyRecvBuf[512];
+	static UNSIGNED_MAU g_isotpPhySendBuf[512];
 	/* currently functional addressing is not supported with multi-frame messages */
-	static uint8_t g_isotpFuncRecvBuf[8];
-	static uint8_t g_isotpFuncSendBuf[8];	
+	static UNSIGNED_MAU g_isotpFuncRecvBuf[8];
+	static UNSIGNED_MAU g_isotpFuncSendBuf[8];	
 	
     int main(void) {
         /* Initialize CAN and other peripherals */
@@ -153,20 +178,23 @@ If you need handle functional addressing, you must use two separate links, one f
             
             /* You can receive message with isotp_receive.
                payload is upper layer message buffer, usually UDS;
-               payload_size is payload buffer size;
-               out_size is the actuall read size;
+               payload_size is payload buffer size in UNSIGNED_MAU;
+               out_size is the actuall read size in bytes;
                */
             ret = isotp_receive(&g_phylink, payload, payload_size, &out_size);
             if (ISOTP_RET_OK == ret) {
                 /* Handle physical addressing message */
             }
             
+            /* Note: out_size is in bytes.
+               payload_size in UNSIGNED_MAU */
             ret = isotp_receive(&g_funclink, payload, payload_size, &out_size);
             if (ISOTP_RET_OK == ret) {
                 /* Handle functional addressing message */
             }            
             
-            /* And send message with isotp_send */
+            /* And send message with isotp_send.
+            Note, payload_size must specifify message length in bytes. */
             ret = isotp_send(&g_phylink, payload, payload_size);
             if (ISOTP_RET_OK == ret) {
                 /* Send ok */

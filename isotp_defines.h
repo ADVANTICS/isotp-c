@@ -1,9 +1,9 @@
 #ifndef __ISOTP_TYPES__
 #define __ISOTP_TYPES__
 
-/**************************************************************
- * compiler specific defines
- *************************************************************/
+///////////////////////////////////////////////////////////////
+/// compiler specific defines.
+///////////////////////////////////////////////////////////////
 #ifdef __GNUC__
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 #define ISOTP_BYTE_ORDER_LITTLE_ENDIAN
@@ -13,9 +13,10 @@
 #endif
 #endif
 
-/**************************************************************
- * OS specific defines
- *************************************************************/
+
+///////////////////////////////////////////////////////////////
+/// OS specific defines
+///////////////////////////////////////////////////////////////
 #ifdef _WIN32
 #define snprintf _snprintf
 #endif
@@ -28,9 +29,23 @@
 #define __builtin_bswap64 _byteswap_uint64
 #endif
 
-/**************************************************************
- * internal used defines
- *************************************************************/
+///////////////////////////////////////////////////////////////
+/// Minimum addressable unit and it's size definitions.
+///////////////////////////////////////////////////////////////
+
+/// Number of 8-bit units in one byte.
+#define MAU_SIZE    (__CHAR_BIT__ / 8)
+#if MAU_SIZE == 1
+    typedef uint8_t UNSIGNED_MAU;
+#elif MAU_SIZE == 2
+    typedef uint16_t UNSIGNED_MAU;
+#else
+    #error "Not supported minimum addressable unit"
+#endif
+
+///////////////////////////////////////////////////////////////
+/// internal used defines
+///////////////////////////////////////////////////////////////
 #define ISOTP_RET_OK           0
 #define ISOTP_RET_ERROR        -1
 #define ISOTP_RET_INPROGRESS   -2
@@ -40,143 +55,137 @@
 #define ISOTP_RET_TIMEOUT      -6
 #define ISOTP_RET_LENGTH       -7
 
-/* return logic true if 'a' is after 'b' */
+/// return logic true if 'a' is after 'b'
 #define IsoTpTimeAfter(a,b) ((int32_t)((int32_t)(b) - (int32_t)(a)) < 0)
 
-/*  invalid bs */
+/// invalid bs
 #define ISOTP_INVALID_BS       0xFFFF
 
-/* ISOTP sender status */
+/// ISOTP sender status
 typedef enum {
     ISOTP_SEND_STATUS_IDLE,
     ISOTP_SEND_STATUS_INPROGRESS,
     ISOTP_SEND_STATUS_ERROR,
 } IsoTpSendStatusTypes;
 
-/* ISOTP receiver status */
+/// ISOTP receiver status
 typedef enum {
     ISOTP_RECEIVE_STATUS_IDLE,
     ISOTP_RECEIVE_STATUS_INPROGRESS,
     ISOTP_RECEIVE_STATUS_FULL,
 } IsoTpReceiveStatusTypes;
 
-/* can frame defination */
-/*  TI C28x family compiler uses __little_endian__ macro  to specify it's endianess.
-    ["TMS320C28x Optimizing C/C++ Compiler v22.6.0.LTS", Page 37] */
+/// can frame defination
+/// TI C28x family compiler uses __little_endian__ macro  to specify it's endianess.
+/// ["TMS320C28x Optimizing C/C++ Compiler v22.6.0.LTS", Page 37]
 #if defined(ISOTP_BYTE_ORDER_LITTLE_ENDIAN) || __little_endian__==1
 
 typedef struct {
-    uint_least8_t reserve_1:4;
-    uint_least8_t type:4;
-    uint_least8_t reserve_2[7];
+    UNSIGNED_MAU reserve_1:4;
+    UNSIGNED_MAU type:4;
+    UNSIGNED_MAU reserve_2[7];
 } IsoTpPciType;
 
 typedef struct {
-    uint_least8_t SF_DL:4;
-    uint_least8_t type:4;
-    uint_least8_t data[7];
+    UNSIGNED_MAU SF_DL:4;
+    UNSIGNED_MAU type:4;
+    UNSIGNED_MAU data[7];
 } IsoTpSingleFrame;
 
 typedef struct {
-    uint_least8_t FF_DL_high:4;
-    uint_least8_t type:4;
-    uint_least8_t FF_DL_low;
-    uint_least8_t data[6];
+    UNSIGNED_MAU FF_DL_high:4;
+    UNSIGNED_MAU type:4;
+    UNSIGNED_MAU FF_DL_low;
+    UNSIGNED_MAU data[6];
 } IsoTpFirstFrame;
 
 typedef struct {
-    uint_least8_t SN:4;
-    uint_least8_t type:4;
-    uint_least8_t data[7];
+    UNSIGNED_MAU SN:4;
+    UNSIGNED_MAU type:4;
+    UNSIGNED_MAU data[7];
 } IsoTpConsecutiveFrame;
 
 typedef struct {
-    uint_least8_t FS:4;
-    uint_least8_t type:4;
-    uint_least8_t BS;
-    uint_least8_t STmin;
-    uint_least8_t reserve[5];
+    UNSIGNED_MAU FS:4;
+    UNSIGNED_MAU type:4;
+    UNSIGNED_MAU BS;
+    UNSIGNED_MAU STmin;
+    UNSIGNED_MAU reserve[5];
 } IsoTpFlowControl;
 
 #else
 
 typedef struct {
-    uint_least8_t type:4;
-    uint_least8_t reserve_1:4;
-    uint_least8_t reserve_2[7];
+    UNSIGNED_MAU type:4;
+    UNSIGNED_MAU reserve_1:4;
+    UNSIGNED_MAU reserve_2[7];
 } IsoTpPciType;
 
-/*
-* single frame
-* +-------------------------+-----+
-* | byte #0                 | ... |
-* +-------------------------+-----+
-* | nibble #0   | nibble #1 | ... |
-* +-------------+-----------+ ... +
-* | PCIType = 0 | SF_DL     | ... |
-* +-------------+-----------+-----+
-*/
+
+/// single frame
+/// +-------------------------+-----+
+/// | byte #0                 | ... |
+/// +-------------------------+-----+
+/// | nibble #0   | nibble #1 | ... |
+/// +-------------+-----------+ ... +
+/// | PCIType = 0 | SF_DL     | ... |
+/// +-------------+-----------+-----+
 typedef struct {
-    uint_least8_t type:4;
-    uint_least8_t SF_DL:4;
-    uint_least8_t data[7];
+    UNSIGNED_MAU type:4;
+    UNSIGNED_MAU SF_DL:4;
+    UNSIGNED_MAU data[7];
 } IsoTpSingleFrame;
 
-/*
-* first frame
-* +-------------------------+-----------------------+-----+
-* | byte #0                 | byte #1               | ... |
-* +-------------------------+-----------+-----------+-----+
-* | nibble #0   | nibble #1 | nibble #2 | nibble #3 | ... |
-* +-------------+-----------+-----------+-----------+-----+
-* | PCIType = 1 | FF_DL                             | ... |
-* +-------------+-----------+-----------------------+-----+
-*/
+/// first frame
+/// +-------------------------+-----------------------+-----+
+/// | byte #0                 | byte #1               | ... |
+/// +-------------------------+-----------+-----------+-----+
+/// | nibble #0   | nibble #1 | nibble #2 | nibble #3 | ... |
+/// +-------------+-----------+-----------+-----------+-----+
+/// | PCIType = 1 | FF_DL                             | ... |
+/// +-------------+-----------+-----------------------+-----+
 typedef struct {
-    uint_least8_t type:4;
-    uint_least8_t FF_DL_high:4;
-    uint_least8_t FF_DL_low;
-    uint_least8_t data[6];
+    UNSIGNED_MAU type:4;
+    UNSIGNED_MAU FF_DL_high:4;
+    UNSIGNED_MAU FF_DL_low;
+    UNSIGNED_MAU data[6];
 } IsoTpFirstFrame;
 
-/*
-* consecutive frame
-* +-------------------------+-----+
-* | byte #0                 | ... |
-* +-------------------------+-----+
-* | nibble #0   | nibble #1 | ... |
-* +-------------+-----------+ ... +
-* | PCIType = 0 | SN        | ... |
-* +-------------+-----------+-----+
-*/
+/// consecutive frame
+/// +-------------------------+-----+
+/// | byte #0                 | ... |
+/// +-------------------------+-----+
+/// | nibble #0   | nibble #1 | ... |
+/// +-------------+-----------+ ... +
+/// | PCIType = 0 | SN        | ... |
+/// +-------------+-----------+-----+
 typedef struct {
-    uint_least8_t type:4;
-    uint_least8_t SN:4;
-    uint_least8_t data[7];
+    UNSIGNED_MAU type:4;
+    UNSIGNED_MAU SN:4;
+    UNSIGNED_MAU data[7];
 } IsoTpConsecutiveFrame;
 
-/*
-* flow control frame
-* +-------------------------+-----------------------+-----------------------+-----+
-* | byte #0                 | byte #1               | byte #2               | ... |
-* +-------------------------+-----------+-----------+-----------+-----------+-----+
-* | nibble #0   | nibble #1 | nibble #2 | nibble #3 | nibble #4 | nibble #5 | ... |
-* +-------------+-----------+-----------+-----------+-----------+-----------+-----+
-* | PCIType = 1 | FS        | BS                    | STmin                 | ... |
-* +-------------+-----------+-----------------------+-----------------------+-----+
-*/
+
+/// flow control frame
+/// +-------------------------+-----------------------+-----------------------+-----+
+/// | byte #0                 | byte #1               | byte #2               | ... |
+/// +-------------------------+-----------+-----------+-----------+-----------+-----+
+/// | nibble #0   | nibble #1 | nibble #2 | nibble #3 | nibble #4 | nibble #5 | ... |
+/// +-------------+-----------+-----------+-----------+-----------+-----------+-----+
+/// | PCIType = 1 | FS        | BS                    | STmin                 | ... |
+/// +-------------+-----------+-----------------------+-----------------------+-----+
 typedef struct {
-    uint_least8_t type:4;
-    uint_least8_t FS:4;
-    uint_least8_t BS;
-    uint_least8_t STmin;
-    uint_least8_t reserve[5];
+    UNSIGNED_MAU type:4;
+    UNSIGNED_MAU FS:4;
+    UNSIGNED_MAU BS;
+    UNSIGNED_MAU STmin;
+    UNSIGNED_MAU reserve[5];
 } IsoTpFlowControl;
 
 #endif
 
 typedef struct {
-    uint_least8_t ptr[8];
+    UNSIGNED_MAU ptr[8];
 } IsoTpDataArray;
 
 typedef struct {
@@ -190,12 +199,11 @@ typedef struct {
     } as;
 } IsoTpCanMessage;
 
-/**************************************************************
- * protocol specific defines
- *************************************************************/
+///////////////////////////////////////////////////////////////
+/// protocol specific defines
+///////////////////////////////////////////////////////////////
 
-/* Private: Protocol Control Information (PCI) types, for identifying each frame of an ISO-TP message.
- */
+/// Private: Protocol Control Information (PCI) types, for identifying each frame of an ISO-TP message.
 typedef enum {
     ISOTP_PCI_TYPE_SINGLE             = 0x0,
     ISOTP_PCI_TYPE_FIRST_FRAME        = 0x1,
@@ -203,16 +211,14 @@ typedef enum {
     ISOTP_PCI_TYPE_FLOW_CONTROL_FRAME = 0x3
 } IsoTpProtocolControlInformation;
 
-/* Private: Protocol Control Information (PCI) flow control identifiers.
- */
+/// Private: Protocol Control Information (PCI) flow control identifiers.
 typedef enum {
     PCI_FLOW_STATUS_CONTINUE = 0x0,
     PCI_FLOW_STATUS_WAIT     = 0x1,
     PCI_FLOW_STATUS_OVERFLOW = 0x2
 } IsoTpFlowStatus;
 
-/* Private: network layer resault code.
- */
+/// Private: network layer result code.
 #define ISOTP_PROTOCOL_RESULT_OK            0
 #define ISOTP_PROTOCOL_RESULT_TIMEOUT_A    -1
 #define ISOTP_PROTOCOL_RESULT_TIMEOUT_BS   -2
