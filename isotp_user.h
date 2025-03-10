@@ -16,7 +16,7 @@ void isotp_user_debug(const UNSIGNED_MAU* message, ...);
 /// @param arbitration_id - CAN message id.
 /// @param data - Pointer to the data to be sent. Each UNSIGNED_MAU element in data buffer 
 ///               represent one 8-bit value (buffer is unpacked).
-/// @param size - Size in classical 8-bit bytes of the data to be sent. Valid values are
+/// @param size - Size in bytes of the data to be sent. Valid values are
 ///               in range [0 .. 8]
 /// @return ISOTP_RET_OK if success, otherwise one of the appropriate ISOTP_RET_XXX codes.
 int  isotp_user_send_can(const uint32_t arbitration_id,
