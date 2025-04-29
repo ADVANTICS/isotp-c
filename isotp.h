@@ -14,50 +14,18 @@ extern "C" {
 #include "isotp_config.h"
 #include "isotp_user.h"
 
-/// @brief Struct containing the data for linking an application to a CAN instance.
-/// The data stored in this struct is used internally and may be used by software programs
-/// using this library.
-typedef struct IsoTpLink {
-    // sender paramters.
-    uint32_t                    send_arbitration_id;    // used to reply consecutive frame
 
-    // message buffer.
-    UNSIGNED_MAU*               send_buffer;            // Note: This buffer is packed if UNSIGNED_MAU is 16 bit value.
-    uint16_t                    send_buf_size;          // Note: The value is always in bytes.
-    uint16_t                    send_size;              // Note: The value is always in bytes.
-    uint16_t                    send_offset;            // Note: The value is always in bytes.
 
-    // multi-frame flags.
-    UNSIGNED_MAU                send_sn;
-    uint16_t                    send_bs_remain;         // Remaining block size. Note: The value is always in classical 8-bit bytes.
-    UNSIGNED_MAU                send_st_min;            // Separation Time between consecutive frames, unit millis.
-    UNSIGNED_MAU                send_wtf_count;         // Maximum number of FC.Wait frame transmissions.
-    uint32_t                    send_timer_st;          // Last time send consecutive frame.
-    uint32_t                    send_timer_bs;          // Time until reception of the next FlowControl N_PDU
-                                                        // start at sending FF, CF, receive FC
-                                                        // end at receive FC
-    int                         send_protocol_result;
-    UNSIGNED_MAU                send_status;
 
-    // receiver paramters.
-    uint32_t                    receive_arbitration_id;
+static inline
+void isotp_reset_receive(struct IsoTpLink *link) {
+    link->receive_status = ISOTP_RECEIVE_STATUS_IDLE;
+}
 
-    // message buffer.
-    UNSIGNED_MAU*               receive_buffer;         // Note: This buffer is packed if UNSIGNED_MAU is 16 bit value.
-    uint16_t                    receive_buf_size;       // Note: The value is always in bytes.
-    uint16_t                    receive_size;           // Note: The value is always in bytes.
-    uint16_t                    receive_offset;         // Note: The value is always in bytes.
-
-    // multi-frame control.
-    UNSIGNED_MAU                receive_sn;
-    UNSIGNED_MAU                receive_bs_count;       // Maximum number of FC.Wait frame transmissions.
-    uint32_t                    receive_timer_cr;       // Time until transmission of the next ConsecutiveFrame N_PDU
-                                                        // start at sending FC, receive CF 
-                                                        // end at receive FC.
-
-    int                         receive_protocol_result;
-    UNSIGNED_MAU                receive_status;                                                     
-} IsoTpLink;
+static inline
+uint16_t isotp_processing_message(struct IsoTpLink *link) {
+    return link->receive_status == ISOTP_RECEIVE_STATUS_FULL;
+}
 
 
 /// @brief Initialises the ISO-TP library.

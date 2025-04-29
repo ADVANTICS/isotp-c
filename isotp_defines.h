@@ -14,6 +14,9 @@
 #endif
 
 
+
+
+
 ///////////////////////////////////////////////////////////////
 /// OS specific defines
 ///////////////////////////////////////////////////////////////
@@ -43,6 +46,53 @@
     #error "Not supported minimum addressable unit"
 #endif
 
+
+/// @brief Struct containing the data for linking an application to a CAN instance.
+/// The data stored in this struct is used internally and may be used by software programs
+/// using this library.
+typedef struct IsoTpLink {
+    // sender paramters.
+    uint32_t                    send_arbitration_id;    // used to reply consecutive frame
+
+    // message buffer.
+    UNSIGNED_MAU*               send_buffer;            // Note: This buffer is packed if UNSIGNED_MAU is 16 bit value.
+    uint16_t                    send_buf_size;          // Note: The value is always in bytes.
+    uint16_t                    send_size;              // Note: The value is always in bytes.
+    uint16_t                    send_offset;            // Note: The value is always in bytes.
+
+    // multi-frame flags.
+    UNSIGNED_MAU                send_sn;
+    uint16_t                    send_bs_remain;         // Remaining block size. Note: The value is always in classical 8-bit bytes.
+    UNSIGNED_MAU                send_st_min;            // Separation Time between consecutive frames, unit millis.
+    UNSIGNED_MAU                send_wtf_count;         // Maximum number of FC.Wait frame transmissions.
+    uint32_t                    send_timer_st;          // Last time send consecutive frame.
+    uint32_t                    send_timer_bs;          // Time until reception of the next FlowControl N_PDU
+                                                        // start at sending FF, CF, receive FC
+                                                        // end at receive FC
+    int                         send_protocol_result;
+    UNSIGNED_MAU                send_status;
+
+    // receiver paramters.
+    uint32_t                    receive_arbitration_id;
+
+    // message buffer.
+    UNSIGNED_MAU*               receive_buffer;         // Note: This buffer is packed if UNSIGNED_MAU is 16 bit value.
+    uint16_t                    receive_buf_size;       // Note: The value is always in bytes.
+    uint16_t                    receive_size;           // Note: The value is always in bytes.
+    uint16_t                    receive_offset;         // Note: The value is always in bytes.
+
+    // multi-frame control.
+    UNSIGNED_MAU                receive_sn;
+    UNSIGNED_MAU                receive_bs_count;       // Maximum number of FC.Wait frame transmissions.
+    uint32_t                    receive_timer_cr;       // Time until transmission of the next ConsecutiveFrame N_PDU
+                                                        // start at sending FC, receive CF 
+                                                        // end at receive FC.
+
+    int                         receive_protocol_result;
+    UNSIGNED_MAU                receive_status;                                                     
+} IsoTpLink;
+
+
 ///////////////////////////////////////////////////////////////
 /// internal used defines
 ///////////////////////////////////////////////////////////////
@@ -54,6 +104,41 @@
 #define ISOTP_RET_NO_DATA      -5
 #define ISOTP_RET_TIMEOUT      -6
 #define ISOTP_RET_LENGTH       -7
+#define ISOTP_RET_PROTOCOL     -8
+
+/// Private: network layer result code.
+#define ISOTP_PROTOCOL_RESULT_TIMEOUT_A    -10
+#define ISOTP_PROTOCOL_RESULT_TIMEOUT_BS   -11
+#define ISOTP_PROTOCOL_RESULT_TIMEOUT_CR   -12
+#define ISOTP_PROTOCOL_RESULT_WRONG_SN     -13
+#define ISOTP_PROTOCOL_RESULT_INVALID_FS   -14
+#define ISOTP_PROTOCOL_RESULT_UNEXP_PDU    -15
+#define ISOTP_PROTOCOL_RESULT_WFT_OVRN     -16
+#define ISOTP_PROTOCOL_RESULT_BUFFER_OVFLW -17
+#define ISOTP_PROTOCOL_RESULT_ERROR        -18
+
+static inline 
+int isotp_protocol_to_err(int protocol_err_code) {
+    switch (protocol_err_code) {
+        case ISOTP_PROTOCOL_RESULT_TIMEOUT_A:
+        case ISOTP_PROTOCOL_RESULT_TIMEOUT_BS:
+        case ISOTP_PROTOCOL_RESULT_TIMEOUT_CR:
+            return ISOTP_RET_TIMEOUT;
+
+        case ISOTP_PROTOCOL_RESULT_BUFFER_OVFLW:
+            return ISOTP_RET_OVERFLOW;
+
+        case ISOTP_PROTOCOL_RESULT_WRONG_SN:
+        case ISOTP_PROTOCOL_RESULT_INVALID_FS:
+        case ISOTP_PROTOCOL_RESULT_UNEXP_PDU:
+        case ISOTP_PROTOCOL_RESULT_WFT_OVRN:
+            return ISOTP_RET_PROTOCOL;
+
+        case ISOTP_PROTOCOL_RESULT_ERROR:
+            return ISOTP_RET_ERROR;
+    };
+    return protocol_err_code;
+}
 
 /// return logic true if 'a' is after 'b'
 #define IsoTpTimeAfter(a,b) ((int32_t)((int32_t)(b) - (int32_t)(a)) < 0)
@@ -65,14 +150,14 @@
 typedef enum {
     ISOTP_SEND_STATUS_IDLE,
     ISOTP_SEND_STATUS_INPROGRESS,
-    ISOTP_SEND_STATUS_ERROR,
+    ISOTP_SEND_STATUS_ERROR
 } IsoTpSendStatusTypes;
 
 /// ISOTP receiver status
 typedef enum {
     ISOTP_RECEIVE_STATUS_IDLE,
     ISOTP_RECEIVE_STATUS_INPROGRESS,
-    ISOTP_RECEIVE_STATUS_FULL,
+    ISOTP_RECEIVE_STATUS_FULL
 } IsoTpReceiveStatusTypes;
 
 /// can frame defination
@@ -218,17 +303,7 @@ typedef enum {
     PCI_FLOW_STATUS_OVERFLOW = 0x2
 } IsoTpFlowStatus;
 
-/// Private: network layer result code.
-#define ISOTP_PROTOCOL_RESULT_OK            0
-#define ISOTP_PROTOCOL_RESULT_TIMEOUT_A    -1
-#define ISOTP_PROTOCOL_RESULT_TIMEOUT_BS   -2
-#define ISOTP_PROTOCOL_RESULT_TIMEOUT_CR   -3
-#define ISOTP_PROTOCOL_RESULT_WRONG_SN     -4
-#define ISOTP_PROTOCOL_RESULT_INVALID_FS   -5
-#define ISOTP_PROTOCOL_RESULT_UNEXP_PDU    -6
-#define ISOTP_PROTOCOL_RESULT_WFT_OVRN     -7
-#define ISOTP_PROTOCOL_RESULT_BUFFER_OVFLW -8
-#define ISOTP_PROTOCOL_RESULT_ERROR        -9
+
 
 #endif
 

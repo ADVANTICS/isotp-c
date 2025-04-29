@@ -92,6 +92,8 @@ static int isotp_send_single_frame(IsoTpLink* link, uint32_t id) {
             link->send_size + 1);
 #endif
 
+    isotp_send_done(link);
+
     return ret;
 }
 
@@ -327,7 +329,7 @@ int isotp_send_with_id(IsoTpLink *link, uint32_t id, const UNSIGNED_MAU payload[
             link->send_wtf_count = 0;
             link->send_timer_st = isotp_user_get_ms();
             link->send_timer_bs = isotp_user_get_ms() + ISO_TP_DEFAULT_RESPONSE_TIMEOUT;
-            link->send_protocol_result = ISOTP_PROTOCOL_RESULT_OK;
+            link->send_protocol_result = ISOTP_RET_OK;
             link->send_status = ISOTP_SEND_STATUS_INPROGRESS;
         }
     }
@@ -352,7 +354,7 @@ void isotp_on_can_message(IsoTpLink *link, UNSIGNED_MAU *data, UNSIGNED_MAU len)
             if (ISOTP_RECEIVE_STATUS_INPROGRESS == link->receive_status) {
                 link->receive_protocol_result = ISOTP_PROTOCOL_RESULT_UNEXP_PDU;
             } else {
-                link->receive_protocol_result = ISOTP_PROTOCOL_RESULT_OK;
+                link->receive_protocol_result = ISOTP_RET_OK;
             }
 
             // handle message
@@ -361,6 +363,7 @@ void isotp_on_can_message(IsoTpLink *link, UNSIGNED_MAU *data, UNSIGNED_MAU len)
             if (ISOTP_RET_OK == ret) {
                 // change status
                 link->receive_status = ISOTP_RECEIVE_STATUS_FULL;
+                isotp_recv_done(link);
             }
             break;
         }
@@ -369,7 +372,7 @@ void isotp_on_can_message(IsoTpLink *link, UNSIGNED_MAU *data, UNSIGNED_MAU len)
             if (ISOTP_RECEIVE_STATUS_INPROGRESS == link->receive_status) {
                 link->receive_protocol_result = ISOTP_PROTOCOL_RESULT_UNEXP_PDU;
             } else {
-                link->receive_protocol_result = ISOTP_PROTOCOL_RESULT_OK;
+                link->receive_protocol_result = ISOTP_RET_OK;
             }
 
             // handle message
@@ -379,8 +382,13 @@ void isotp_on_can_message(IsoTpLink *link, UNSIGNED_MAU *data, UNSIGNED_MAU len)
             if (ISOTP_RET_OVERFLOW == ret) {
                 // update protocol result
                 link->receive_protocol_result = ISOTP_PROTOCOL_RESULT_BUFFER_OVFLW;
+
+                // Call error callback
+                isotp_recv_fail(link, isotp_protocol_to_err(link->receive_protocol_result));
+
                 // change status
-                link->receive_status = ISOTP_RECEIVE_STATUS_IDLE;
+                isotp_reset_receive(link);
+
                 // send error message
                 isotp_send_flow_control(link, PCI_FLOW_STATUS_OVERFLOW, 0, 0);
                 break;
@@ -412,7 +420,11 @@ void isotp_on_can_message(IsoTpLink *link, UNSIGNED_MAU *data, UNSIGNED_MAU len)
             // if wrong sn
             if (ISOTP_RET_WRONG_SN == ret) {
                 link->receive_protocol_result = ISOTP_PROTOCOL_RESULT_WRONG_SN;
-                link->receive_status = ISOTP_RECEIVE_STATUS_IDLE;
+
+                // Call error callback
+                isotp_recv_fail(link, isotp_protocol_to_err(link->receive_protocol_result));
+
+                isotp_reset_receive(link);
                 break;
             }
 
@@ -424,6 +436,7 @@ void isotp_on_can_message(IsoTpLink *link, UNSIGNED_MAU *data, UNSIGNED_MAU len)
                 // receive finished
                 if (link->receive_offset >= link->receive_size) {
                     link->receive_status = ISOTP_RECEIVE_STATUS_FULL;
+                    isotp_recv_done(link);
                 } else {
                     // send fc when bs reaches limit
                     if (0 == --link->receive_bs_count) {
@@ -451,6 +464,7 @@ void isotp_on_can_message(IsoTpLink *link, UNSIGNED_MAU *data, UNSIGNED_MAU len)
                 // overflow
                 if (PCI_FLOW_STATUS_OVERFLOW == message.as.flow_control.FS) {
                     link->send_protocol_result = ISOTP_PROTOCOL_RESULT_BUFFER_OVFLW;
+                    isotp_send_fail(link, isotp_protocol_to_err(link->send_protocol_result));
                     link->send_status = ISOTP_SEND_STATUS_ERROR;
                 }
 
@@ -460,6 +474,7 @@ void isotp_on_can_message(IsoTpLink *link, UNSIGNED_MAU *data, UNSIGNED_MAU len)
                     // wait exceed allowed count
                     if (link->send_wtf_count > ISO_TP_MAX_WFT_NUMBER) {
                         link->send_protocol_result = ISOTP_PROTOCOL_RESULT_WFT_OVRN;
+                        isotp_send_fail(link, isotp_protocol_to_err(link->send_protocol_result));
                         link->send_status = ISOTP_SEND_STATUS_ERROR;
                     }
                 }
@@ -501,7 +516,8 @@ int isotp_receive(IsoTpLink *link, UNSIGNED_MAU *payload, const uint16_t payload
 
     memcpy(payload, link->receive_buffer, copylen);
     *out_size = link->receive_size;
-    link->receive_status = ISOTP_RECEIVE_STATUS_IDLE;
+
+    isotp_reset_receive(link);
 
     return result;
 }
@@ -509,7 +525,7 @@ int isotp_receive(IsoTpLink *link, UNSIGNED_MAU *payload, const uint16_t payload
 
 void isotp_init_link(IsoTpLink *link, uint32_t sendid, UNSIGNED_MAU *sendbuf, uint16_t sendbufsize, UNSIGNED_MAU *recvbuf, uint16_t recvbufsize) {
     memset(link, 0, sizeof(*link));
-    link->receive_status = ISOTP_RECEIVE_STATUS_IDLE;
+    isotp_reset_receive(link);
     link->send_status = ISOTP_SEND_STATUS_IDLE;
     link->send_arbitration_id = sendid;
 
@@ -543,9 +559,12 @@ void isotp_poll(IsoTpLink *link) {
 
                 // check if send finish
                 if (link->send_offset >= link->send_size) {
+                    isotp_send_done(link);
                     link->send_status = ISOTP_SEND_STATUS_IDLE;
                 }
             } else {
+                link->send_protocol_result = ISOTP_PROTOCOL_RESULT_ERROR;
+                isotp_send_fail(link, ret);
                 link->send_status = ISOTP_SEND_STATUS_ERROR;
             }
         }
@@ -553,6 +572,7 @@ void isotp_poll(IsoTpLink *link) {
         // check timeout
         if (IsoTpTimeAfter(isotp_user_get_ms(), link->send_timer_bs)) {
             link->send_protocol_result = ISOTP_PROTOCOL_RESULT_TIMEOUT_BS;
+            isotp_send_fail(link, isotp_protocol_to_err(link->send_protocol_result));
             link->send_status = ISOTP_SEND_STATUS_ERROR;
         }
     }
@@ -563,7 +583,11 @@ void isotp_poll(IsoTpLink *link) {
         // check timeout
         if (IsoTpTimeAfter(isotp_user_get_ms(), link->receive_timer_cr)) {
             link->receive_protocol_result = ISOTP_PROTOCOL_RESULT_TIMEOUT_CR;
-            link->receive_status = ISOTP_RECEIVE_STATUS_IDLE;
+
+            // Call error callback
+            isotp_recv_fail(link, isotp_protocol_to_err(link->receive_protocol_result));
+
+            isotp_reset_receive(link);
         }
     }
 
