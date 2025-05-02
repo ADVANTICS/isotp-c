@@ -22,12 +22,6 @@ void isotp_reset_receive(struct IsoTpLink *link) {
     link->receive_status = ISOTP_RECEIVE_STATUS_IDLE;
 }
 
-static inline
-uint16_t isotp_processing_message(struct IsoTpLink *link) {
-    return link->receive_status == ISOTP_RECEIVE_STATUS_FULL;
-}
-
-
 /// @brief Initialises the ISO-TP library.
 /// @param link - The @code IsoTpLink @endcode instance used for transceiving data.
 /// @param sendid - The ID used to send data to other CAN nodes.
@@ -78,8 +72,8 @@ int isotp_send(IsoTpLink *link, const UNSIGNED_MAU payload[], uint16_t size);
 int isotp_send_with_id(IsoTpLink *link, uint32_t id, const UNSIGNED_MAU payload[], uint16_t size);
 
 
-/// @brief Receives and parses the received data and copies the parsed data in to the internal buffer.
-/// @param link - The @link IsoTpLink @endlink instance used to transceive data.
+/// @brief Copies recieved message from the internal buffer if any.
+/// @param link - The @link IsoTpLink @endlink instance used to receive data.
 /// @param payload - A pointer to an area in memory where the raw data is copied to.
 ///                  This buffer is packed if MAU_SIZE > 1 (UNSIGNED_MAU contains two or more classical 8-bit bytes).
 /// @param payload_size - The size of the payload buffer in native bytes elements (UNSIGNED_MAU) units.
@@ -92,6 +86,17 @@ int isotp_send_with_id(IsoTpLink *link, uint32_t id, const UNSIGNED_MAU payload[
 ///          This is not an issue because this extra byte will not be written across buffer boundary, and out_size will return
 ///          correct received data size in bytes.
 int isotp_receive(IsoTpLink *link, UNSIGNED_MAU *payload, const uint16_t payload_size, uint16_t *out_size);
+
+/// @brief Provides access to received message without copying it, if any (inplace, within internal received buffer).
+/// @param link - The @link IsoTpLink @endlink instance used to receive data.
+/// @param payload - output argument, a pointer to a pointer which receives a pointer to received message.
+/// @param out_size - output argument, a pointer to a number of bytes of received message.
+/// @return Possible return values:
+///      - @link ISOTP_RET_OK @endlink
+///      - @link ISOTP_RET_NO_DATA @endlink
+/// @warning isotp_reset_receive() MUST be called when message is processed, and no longer required. If not called, the 
+///          following messages will not be received.
+int isotp_receive_inplace(IsoTpLink *link, UNSIGNED_MAU **payload, uint16_t *out_size);
 
 #ifdef __cplusplus
 }

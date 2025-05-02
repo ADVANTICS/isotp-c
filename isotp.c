@@ -498,6 +498,20 @@ void isotp_on_can_message(IsoTpLink *link, UNSIGNED_MAU *data, UNSIGNED_MAU len)
     return;
 }
 
+int isotp_receive_inplace(IsoTpLink *link, UNSIGNED_MAU **payload, uint16_t *out_size) {
+    int result = ISOTP_RET_NO_DATA;
+    
+    if (ISOTP_RECEIVE_STATUS_FULL != link->receive_status) {
+        return result;
+    }
+
+    result = ISOTP_RET_OK;
+    *out_size = link->receive_size;
+    *payload = link->receive_buffer;
+
+    return result;
+}
+
 
 int isotp_receive(IsoTpLink *link, UNSIGNED_MAU *payload, const uint16_t payload_size, uint16_t *out_size) {
     int result = ISOTP_RET_NO_DATA;
