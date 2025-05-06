@@ -12,13 +12,16 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/
 )
 
-enable_testing()
 
-add_executable( buffer_pack_unpack_16_test
-		buffer_pack_unpack_16.c
-		test.c )
+if(NOT CMAKE_CROSSCOMPILING)
+    enable_testing()
+    add_executable( buffer_pack_unpack_16_test
+                    buffer_pack_unpack_16.c
+                    test.c )
 
-add_test(
-    NAME buffer_pack_unpack_16_test 
-    COMMAND buffer_pack_unpack_16_test
-)
+    add_test( NAME buffer_pack_unpack_16_test 
+              COMMAND buffer_pack_unpack_16_test )
+endif()
+
+
+
