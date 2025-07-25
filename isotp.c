@@ -51,9 +51,9 @@ static int isotp_send_flow_control(IsoTpLink* link, UNSIGNED_MAU flow_status, UN
     // send message
 #ifdef ISO_TP_FRAME_PADDING
     (void) memset(message.as.flow_control.reserve, 0, sizeof(message.as.flow_control.reserve));
-    ret = isotp_user_send_can(link->send_arbitration_id, message.as.data_array.ptr, sizeof(message));
+    ret = isotp_user_send_can(link, link->send_arbitration_id, message.as.data_array.ptr, sizeof(message));
 #else    
-    ret = isotp_user_send_can(link->send_arbitration_id,
+    ret = isotp_user_send_can(link, link->send_arbitration_id,
             message.as.data_array.ptr,
             3);
 #endif
@@ -85,9 +85,9 @@ static int isotp_send_single_frame(IsoTpLink* link, uint32_t id) {
     // send message
 #ifdef ISO_TP_FRAME_PADDING
     (void) memset(message.as.single_frame.data + link->send_size, 0, sizeof(message.as.single_frame.data) - link->send_size);
-    ret = isotp_user_send_can(id, message.as.data_array.ptr, sizeof(message));
+    ret = isotp_user_send_can(link, id, message.as.data_array.ptr, sizeof(message));
 #else
-    ret = isotp_user_send_can(id,
+    ret = isotp_user_send_can(link, id,
             message.as.data_array.ptr,
             link->send_size + 1);
 #endif
@@ -119,7 +119,7 @@ static int isotp_send_first_frame(IsoTpLink* link, uint32_t id) {
 #endif
 
     // send message
-    ret = isotp_user_send_can(id, message.as.data_array.ptr, sizeof(message));
+    ret = isotp_user_send_can(link, id, message.as.data_array.ptr, sizeof(message));
     if (ISOTP_RET_OK == ret) {
         link->send_offset += sizeof(message.as.first_frame.data);
         link->send_bs_remain = link->send_size - sizeof(message.as.first_frame.data);
@@ -157,9 +157,9 @@ static int isotp_send_consecutive_frame(IsoTpLink* link) {
     // send message
 #ifdef ISO_TP_FRAME_PADDING
     (void) memset(message.as.consecutive_frame.data + data_length, 0, sizeof(message.as.consecutive_frame.data) - data_length);
-    ret = isotp_user_send_can(link->send_arbitration_id, message.as.data_array.ptr, sizeof(message));
+    ret = isotp_user_send_can(link, link->send_arbitration_id, message.as.data_array.ptr, sizeof(message));
 #else
-    ret = isotp_user_send_can(link->send_arbitration_id,
+    ret = isotp_user_send_can(link, link->send_arbitration_id,
             message.as.data_array.ptr,
             data_length + 1);
 #endif
@@ -298,8 +298,6 @@ int isotp_send_with_id(IsoTpLink *link, uint32_t id, const UNSIGNED_MAU payload[
 
     if (size_in_bytes > link->send_buf_size) {
         isotp_user_debug("Message size too large. Increase ISO_TP_MAX_MESSAGE_SIZE to set a larger buffer\n");
-        char message[128];
-        sprintf(&message[0], "Attempted to send %d bytes; max size is %d!\n", size_in_bytes, link->send_buf_size);
         return ISOTP_RET_OVERFLOW;
     }
 
@@ -345,7 +343,7 @@ void isotp_on_can_message(IsoTpLink *link, UNSIGNED_MAU *data, UNSIGNED_MAU len)
         return;
     }
 
-    memcpy(message.as.data_array.ptr, data, len);
+    buffer_unpack16(message.as.data_array.ptr, data, 0, len);
     memset(message.as.data_array.ptr + len, 0, sizeof(message.as.data_array.ptr) - len);
 
     switch (message.as.common.type) {

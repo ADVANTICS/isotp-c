@@ -38,9 +38,11 @@ void isotp_recv_fail(struct IsoTpLink *link, int error);
 /// @param size - Size in bytes of the data to be sent. Valid values are
 ///               in range [0 .. 8]
 /// @return ISOTP_RET_OK if success, otherwise one of the appropriate ISOTP_RET_XXX codes.
-int  isotp_user_send_can(const uint32_t arbitration_id,
-                         const UNSIGNED_MAU* data,
-                         const UNSIGNED_MAU size);
+int  isotp_user_send_can(   struct IsoTpLink *link,
+                            const uint32_t arbitration_id,
+                            const UNSIGNED_MAU* data,
+                            const UNSIGNED_MAU size);
+                         
 
 /// @brief User defined function to obtaine 1ms timestamp.
 /// @return Number of millisecond period of time being passed.
