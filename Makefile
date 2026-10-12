@@ -1,6 +1,6 @@
 include vars.mk
 
-CFLAGS := -Wall -g -ggdb $(STD)
+CFLAGS := -Wall -g -ggdb -fPIC $(STD)
 LDFLAGS := -shared
 BIN := ./bin
 
