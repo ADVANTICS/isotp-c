@@ -343,7 +343,13 @@ void isotp_on_can_message(IsoTpLink *link, UNSIGNED_MAU *data, UNSIGNED_MAU len)
         return;
     }
 
+#if MAU_SIZE == 2
     buffer_unpack16(message.as.data_array.ptr, data, 0, len);
+#elif MAU_SIZE == 1
+    (void) memcpy(message.as.data_array.ptr, data, len);
+#else
+    #error Unsupported MAU_SIZE
+#endif
     memset(message.as.data_array.ptr + len, 0, sizeof(message.as.data_array.ptr) - len);
 
     switch (message.as.common.type) {
